@@ -11,7 +11,7 @@ string_length:
   .iter:
     cmp [rdi+rax], byte 0x0
     je .end
-    inc rax                 ; incrementing rax
+    inc rax                 ; incrementing <rax>
     jmp .iter
   .end:
     ret
@@ -58,7 +58,7 @@ print_uint:
     mov [rcx], byte 0x0     ; setting code of null-terminator to the end of allocated buffer
     mov r10, 0xA
   .iter:
-    xor rdx, rdx            ; nullifying rdx
+    xor rdx, rdx            ; nullifying <rdx>
     div r10
     add rdx, 0x30
     dec rcx
@@ -139,7 +139,7 @@ parse_int:
 string_copy:
     call string_length
   .copy:
-    xor rcx, rcx            ; nullifying rcx
+    xor rcx, rcx            ; nullifying <rcx>
   .iter:
     cmp rcx, rdx
     je .err
@@ -147,7 +147,7 @@ string_copy:
     mov [rsi+rcx], r8b      ; writing the next character to the buffer
     cmp rcx, rax
     je .end
-    inc rcx                 ; incrementing rcx
+    inc rcx                 ; incrementing <rcx>
     jmp .iter
   .err:
     xor rax, rax            ; nullifying accumulator
