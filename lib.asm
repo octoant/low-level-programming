@@ -56,7 +56,7 @@ print_uint:
     sub rsp, 0x16           ; allocating 22 bytes in the stack for keeping decimal number digits' ASCII-code
     dec rcx
     mov [rcx], byte 0x0     ; setting code of null-terminator to the end of allocated buffer
-    mov r10, 0xA
+    mov r10, 0xa
   .iter:
     xor rdx, rdx            ; nullifying <rdx>
     div r10
@@ -79,7 +79,7 @@ print_int:
   .neg:
     neg rdi                 ; inverting sign of the number
     push rdi
-    mov rdi, 0x2D           ; storing dash ASCII-code
+    mov rdi, 0x2d           ; storing dash ASCII-code
     call print_char         ; printing minus char
     pop rdi
   .pos:
@@ -113,7 +113,51 @@ read_char:
 ; При неудаче возвращает 0 в rax
 ; Эта функция должна дописывать к слову нуль-терминатор
 read_word:
-    xor rax, rax
+    push rsi-0x1            ; pushing buffer address
+    push rdi                ; pushing buffer size
+  .skip:
+    call read_char
+    cmp rax, 0xa            ; skipping char with ASCII-code 0xA
+    je .skip
+    cmp rax, 0x9            ; skipping char with ASCII-code 0x9
+    je .skip
+    cmp rax, 0x20           ; skipping char with ASCII-code 0x20
+    je .skip
+  .init:
+    mov rdi, [rsp]          ; storing buffer address to <rdi>
+    mov rsi, [rsp+0x1]      ; storing buffer size to <rsi>
+    xor rdx, rdx            ; nullifying <rdx>
+  .iter:
+    cmp rdx, rsi
+    je .err
+    test rax, rax
+    je .succ
+    mov [rdi+rdx], al       ; storing char on the buffer
+    inc rdx                 ; incrementing buffer pointer
+  .read:
+    push rdx
+    call read_char
+    pop rdx
+  .store:
+    mov rdi, [rsp]
+    mov rsi, [rsp+0x1]
+  .check:
+    cmp rax, 0xa
+    je .succ
+    cmp rax, 0x9
+    je .succ
+    cmp rax, 0x20
+    je .succ
+    jmp .iter
+  .succ:
+    mov [rdi+rdx], byte 0x0 ; storing null terminator
+    mov rax, rdi            ; storing returning value in the accumulator
+    jmp .end
+  .err:
+    xor rax, rax            ; nullifying accumulator
+  .end:
+    pop rdi                 ; restoring stack state
+    pop rsi
     ret
 
 ; Принимает указатель на строку, пытается
