@@ -2,8 +2,8 @@ section .text
 
 ; Принимает код возврата и завершает текущий процесс
 exit:
-    xor rax, rax
-    ret
+    mov rax, 60
+    syscall
 
 ; Принимает указатель на нуль-терминированную строку, возвращает её длину
 string_length:
@@ -43,7 +43,9 @@ print_char:
 
 ; Переводит строку (выводит символ с кодом 0xA)
 print_newline:
-    xor rax, rax
+    mov rdi, 0xa
+    call print_char
+  .end:
     ret
 
 ; Выводит беззнаковое 8-байтовое число в десятичном формате
@@ -89,7 +91,22 @@ print_int:
 
 ; Принимает два указателя на нуль-терминированные строки, возвращает 1 если они равны, 0 иначе
 string_equals:
-    xor rax, rax
+    xor rcx, rcx            ; nullifying buffer's pointer
+    xor r8, r8
+    xor r9, r9
+    mov rax, 0x1            ; moving accumulator value equal to 1
+  .cmp:
+    mov r8b, [rdi+rcx]      ; loading next character of first string
+    mov r9b, [rsi+rcx]      ; loading next character of second string
+    cmp r8b, r9b
+    jne .err
+    cmp r8b, 0x0
+    je .end
+    inc rcx                 ; incrementing pointer
+    jmp .cmp
+  .err:
+    xor rax, rax            ; nullifying accumulator
+  .end:
     ret
 
 ; Читает один символ из stdin и возвращает его. Возвращает 0 если достигнут конец потока
@@ -165,7 +182,26 @@ read_word:
 ; Возвращает в rax: число, rdx : его длину в символах
 ; rdx = 0 если число прочитать не удалось
 parse_uint:
-    xor rax, rax
+    xor rax, rax            ; nullifying accumulator
+    xor rdx, rdx
+    xor r9, r9
+    mov r10, 0xa            ; setting <r10> value equal to 10
+  .parse:
+    mov r9b, [rdi+rdx]      ; reading next character from the buffer
+  .check:
+    cmp r9b, 0x30
+    jb .end
+    cmp r9b, 0x39
+    ja .end
+  .digit:
+    push rdx
+    sub r9b, 0x30           ; converting character to integer
+    mul r10                 ; multiplying result to 10
+    add rax, r9             ; adding digit to the result
+    pop rdx
+    inc rdx                 ; incrementing buffer pointer
+    jmp .parse
+  .end:
     ret
 
 ; Принимает указатель на строку, пытается
@@ -174,7 +210,17 @@ parse_uint:
 ; Возвращает в rax: число, rdx : его длину в символах (включая знак, если он был)
 ; rdx = 0 если число прочитать не удалось
 parse_int:
-    xor rax, rax
+    cmp [rdi], byte 0x2d    ; checking for sign
+    je .neg
+  .pos:
+    call parse_uint         ; parsing positive integer
+    jmp .end
+  .neg:
+    inc rdi                 ; skipping dash sign
+    call parse_uint         ; parsing negative integer
+    neg rax                 ; negating accumulator
+    inc rdx                 ; incrementing number length
+  .end:
     ret
 
 ; Принимает указатель на строку, указатель на буфер и длину буфера
