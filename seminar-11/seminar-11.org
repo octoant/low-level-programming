@@ -137,7 +137,7 @@ y*z
 #+INCLUDE: "../common/before-image.org"
 #+attr_latex: :width 0.30\textwidth
 #+attr_html: :width 30%
-{{{if-latex-else([[./img/ast0.svg]],)}}}
+[[./img/ast0.svg]]
 #+INCLUDE: "../common/after-image.org"
 # ]
 
@@ -156,7 +156,7 @@ x+y*z
 #+INCLUDE: "../common/before-image.org"
 #+attr_latex: :width 0.3\textwidth
 #+attr_html: :width 30%
-{{{if-latex-else([[./img/ast1.svg]],)}}}
+[[./img/ast1.svg]]
 #+INCLUDE: "../common/after-image.org"
 
 #+BEGIN_EXPORT md
@@ -177,7 +177,7 @@ else {
 #+INCLUDE: "../common/before-image.org"
 #+attr_latex: :width 0.6\textwidth
 #+attr_html: :width 60%
-{{{if-latex-else([[./img/ast2.svg]],)}}}
+[[./img/ast2.svg]]
 #+INCLUDE: "../common/after-image.org"
 # ]
 
@@ -208,7 +208,9 @@ else {
 
 
 #+DOWNLOADED: screenshot @ 2021-11-16 00:32:30
+#+BEGIN_COMMENT
 [[file:Синтаксис/2021-11-16_00-32-30_screenshot.png]]
+#+END_COMMENT
 
 
 - Знание AST бывает полезным при попытке понять сообщения об ошибках, выдающиеся компилятором (см. первое задание :)
