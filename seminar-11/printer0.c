@@ -1,14 +1,13 @@
 #include <inttypes.h>
 #include <malloc.h>
 #include <stdio.h>
-#include <string.h>
 
 
 struct AST {
   enum AST_type { AST_BINOP, AST_UNOP, AST_LIT } type;
   union {
     struct binop {
-      enum binop_type { BIN_PLUS, BIN_MINUS, BIN_MUL } type;
+      enum binop_type { BIN_PLUS, BIN_MINUS, BIN_MUL, BIN_DIV } type;
       struct AST *left, *right;
     } as_binop;
     struct unop {
@@ -56,6 +55,7 @@ struct AST *binop(enum binop_type type, struct AST *left, struct AST *right) {
 DECLARE_BINOP(add, PLUS)
 DECLARE_BINOP(mul, MUL)
 DECLARE_BINOP(sub, MINUS)
+DECLARE_BINOP(div, DIV)
 
 #undef DECLARE_BINOP
 #define DECLARE_UNOP(fun, code)                                                \
@@ -67,7 +67,7 @@ DECLARE_UNOP(neg, NEG)
 /* printer */
 
 static const char *BINOPS[] = {
-    [BIN_PLUS] = "+", [BIN_MINUS] = "-", [BIN_MUL] = "*"};
+    [BIN_PLUS] = "+", [BIN_MINUS] = "-", [BIN_MUL] = "*", [BIN_DIV] = "/"};
 static const char *UNOPS[] = {[UN_NEG] = "-"};
 
 typedef void(printer)(FILE *, struct AST *);
@@ -77,9 +77,7 @@ void print(FILE *f, struct AST *ast);
 void print_binop(FILE *f, struct AST *ast) {
   fprintf(f, "(");
   print(f, ast->as_binop.left);
-  fprintf(f, ")");
-  fprintf(f, "%s", BINOPS[ast->as_binop.type]);
-  fprintf(f, "(");
+  fprintf(f, ")%s(", BINOPS[ast->as_binop.type]);
   print(f, ast->as_binop.right);
   fprintf(f, ")");
 }
@@ -103,7 +101,11 @@ void print(FILE *f, struct AST *ast) {
 }
 
 int main() {
-  struct AST *ast = add(lit(40), lit(2));
-  print(stdout, ast);
+  print(stdout,add(lit(999), lit(728)));
+    printf("\n");
+  print(stdout, add(lit(4), mul(lit(2), lit(9))));
+    printf("\n");
+  print(stdout, mul(add(lit(3), lit(5)), div(lit(9), lit(7))));
+    printf("\n");
   return 0;
 }
