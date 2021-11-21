@@ -1,0 +1,385 @@
+#+SETUPFILE: https://fniessen.github.io/org-html-themes/org/theme-readtheorg.setup
+#+LANGUAGE: ru
+#+OPTIONS: ':t
+#+OPTIONS: toc:1
+#+OPTIONS: tasks:nil
+
+#+TITLE: Семинар 3: использование стека
+
+
+* Tема занятия
+  :PROPERTIES:
+  :UNNUMBERED: t
+  :END:
+
+  На этом занятии мы реализуем несколько кусочков первой лабораторной работы и пронаблюдаем за вызовом функций.
+
+  Мы узнаем про использование стека для организации вызова процедур, хранения локальных переменных; мы в первом приближении изучим используемое соглашение вызова и научимся правильно вызывать функции.
+ 
+
+* Определение функций (5 минут)
+
+  Вспомним привычный уже код программы =Hello, world!=:
+
+  #+BEGIN_SRC asm
+; hello.asm 
+section .data
+message: db  'hello, world!', 10
+
+section .text
+global _start
+
+_start:
+    mov     rax, 1           ; 'write' syscall number
+    mov     rdi, 1           ; stdout descriptor
+    mov     rsi, message     ; string address
+    mov     rdx, 14          ; string length in bytes
+    syscall
+
+    mov     rax, 60          ; 'exit' syscall number
+    xor     rdi, rdi
+    syscall
+  #+END_SRC
+
+Она завершается системным вызовом =exit=, который выходит из программы. 
+
+#+BEGIN_SRC asm
+    mov     rax, 60          ; 'exit' syscall number
+    xor     rdi, rdi
+    syscall
+#+END_SRC
+
+Было бы удобнее именовать эту последовательность инструкций и вызвать её по имени. Так мы, взглянув на программу, сразу поймём, чего хотел программист.
+
+Кроме того, это полезно, мы выходим из программы более, чем в одном месте --- не нужно переписывать эти три инструкции.
+
+#+BEGIN_SRC asm
+; hello.asm 
+section .data
+message: db  'hello, world!', 10
+
+section .text
+global _start
+
+exit:
+    mov     rax, 60         ;  Это функция
+    xor     rdi, rdi           ;  Это функция
+    syscall                     ;  Это функция
+
+_start:
+    mov     rax, 1
+    mov     rdi, 1
+    mov     rsi, message  
+    mov     rdx, 14         
+    syscall
+    call exit                    ; это вызов функции exit
+#+END_SRC
+
+Итак, чтобы определить функцию, нужно создать для неё метку (в данном случае =exit=) и выделить её код отдельно по этой метке.
+
+Чтобы при выполнении программы обратиться к ней и вызвать её используется инструкция =call=, в которую передаётся адрес начала функции.
+
+*Терминологическое* Иногда функции на уровне ассемблера называют подпрограммами (subroutine) чтобы отличать их от функций на языках высокого уровня.
+
+
+
+* Возврат из функций (25 минут)
+Вообще от подпрограмм требуется поддержка двух действий:
+
+- нам необходимо иметь возможность вызывать их отовсюду;
+- подпрограммы должны иметь возможность вернуться в место вызова, чтобы программа продолжила работу.
+
+Чтобы завершить выполнение функции и вернуться в место, откуда она была вызвана, используется инструкция =ret=.
+
+Напишем другую функцию, которая при вызове выводит =Hello, world!= и с её помощью выведем =Hello, world!= дважды.
+
+#+BEGIN_SRC asm
+; hello.asm 
+section .data
+message: db  'hello, world!', 10
+
+section .text
+global _start
+
+exit:
+    mov     rax, 60         ;  Это функция
+    xor     rdi, rdi           ;  Это функция
+    syscall                     ;  Это функция
+
+print_string:
+  mov     rax, 1
+  mov     rdi, 1
+  mov     rsi, message  
+  mov     rdx, 14         
+  syscall
+  ret
+
+_start:
+    call print_string
+    call print_string
+    call exit                    ; это вызов функции exit
+#+END_SRC
+
+
+*Вопрос* Выполните эту программу по шагам в gdb и проследите за указателем на стек (регистром =rsp=). Как на него влияют инструкции =call= и =ret=?
+
+*Вопрос*  Обратитесь к Intel software developer manual и прочитайте странички, соответствующие инструкциям =call= и =ret=. Опишите действие этих инструкций на память и регистры.
+
+*Вопрос* Что, если функция =f= вызывает функцию =g=? Напишите программу, где есть такие функции и вызовы; выполните её по шагам в gdb и проследите за указателем на стек (регистром =rsp=).
+
+*Вопрос* Почему мы не написали инструкцию =ret= в конце функции =exit=?
+
+*Вопрос* Выделите из следующего кода (взято со стр. 22 книги "Low-level programming") функцию =print_hex=, которая примет аргумент в правильном регистре (не =rax=) и выведет его на экран. Выведите с её помощью любые три числа.
+
+#+BEGIN_SRC asm
+section .data
+codes:
+    db      '0123456789ABCDEF'
+
+section .text
+global _start
+_start:
+    ; number 1122... in hexadecimal format
+    mov rax, 0x1122334455667788
+
+    mov rdi, 1
+    mov rdx, 1
+    mov rcx, 64
+	; Each 4 bits should be output as one hexadecimal digit
+	; Use shift and bitwise AND to isolate them
+	; the result is the offset in 'codes' array
+.loop:
+    push rax
+    sub rcx, 4
+	; cl is a register, smallest part of rcx
+	; rax -- eax -- ax -- ah + al
+	; rcx -- ecx -- cx -- ch + cl
+    sar rax, cl
+    and rax, 0xf
+
+    lea rsi, [codes + rax]
+    mov rax, 1
+
+    ; syscall leaves rcx and r11 changed
+    push rcx
+    syscall
+    pop rcx
+
+    pop rax
+	; test can be used for the fastest 'is it a zero?' check
+	; see docs for 'test' command
+    test rcx, rcx
+    jnz .loop
+
+    mov     rax, 60            ; invoke 'exit' system call
+    xor     rdi, rdi
+    syscall
+
+#+END_SRC
+
+* Функции с аргументами (10 мин) 
+
+Функция =print_string= всегда забирает данные с адреса =message=, что существенно ограничивает её полезность.
+Чтобы дать возможность каждый раз при запуске указывать, на каких данных функция работает (в данном случае, какую строку выводить) мы параметризуем функции, добавляя /аргументы/. Каждый аргумент это кусок данных, который нужен функции для работы, например, адрес начала строки для вывода.
+
+Функции могут иметь множество аргументов. Первые шесть они получают через регистры.
+
+*Вопрос* Какие регистры для этого используются? Ищите ответ в секции 2.4 "Low-level programming".
+
+
+Например, мы хотели бы вызвать функцию =sum=, которая на псевдокоде выглядит так:
+
+#+BEGIN_SRC c
+// это псевдокод
+int sum(int a, int b) {
+  return a + b;
+}
+
+// при вызове мы хотим поместить результат в rcx
+rcx <- sum( 42, 44 )
+#+END_SRC
+
+Вот реализация функции =sum= и её вызов:
+
+#+BEGIN_SRC asm
+; rdi = a, rsi = b
+sum: 
+      mov rax, rdi
+      add rax, rsi
+      ret
+
+...
+mov rdi, 42
+mov rsi, 44
+call sum
+mov rcx, rax
+#+END_SRC
+
+При этом правильность вызова никак не контролируется:
+
+#+BEGIN_SRC asm
+; rdi = a, rsi = b
+sum: 
+      mov rax, rdi
+      add rax, rsi
+      ret
+
+...
+mov rdi, 42   
+call sum         ; Второй аргумент всё равно возьмётся из rsi
+mov rcx, rax     ; Скорее всего там "мусорное" значение
+#+END_SRC 
+
+
+*Вопрос*  Есть ли разница между этими двумя вызовами функции =f= с двумя аргументами?
+
+#+BEGIN_SRC asm
+  mov rdi,10
+  mov rsi, 30
+  call f
+
+  mov rsi, 30
+  mov rdi,10
+  call f
+#+END_SRC
+
+*Вопрос* Сколько аргументов нужно передать функции =print_string=, чтобы она могла вывести любую строку с помощью системного вызова =write=? Хватит ли одного? 
+
+* Возврат значений из функций (15 мин) 
+
+Зачастую цель написания функции --- в подсчёте данных, которые потом нужно передать в основную программу, которая функцию и вызвала. По соглашению, после завершения выполнения функции пара регистров =rax= (основное значение) и =rdx= хранят значение, подсчитанное функцией. Оно также называется /возвращаемое значение/. Перечитайте про это в 
+секции 2.4 из книги "Low-level programming".
+
+*Вопрос* Прочитате секцию 2.5.2 из книги "Low-level programming". Перепишите следующую программу так, чтобы функция =print_string= принимала нуль-терминированную строку в единственном аргументе строки.
+
+#+BEGIN_SRC asm
+; hello.asm 
+section .data
+message: db  'hello, world!', 10
+
+section .text
+global _start
+
+exit:
+    mov    rax, 60
+    xor     rdi, rdi          
+    syscall
+
+string_length:
+  mov rax, 0
+    .loop:
+      xor rax, rax
+    .count:
+      cmp byte [rdi+rax], 0
+      je .end
+      inc rax
+      jmp .count
+    .end:
+      ret
+print_string:
+  mov     rsi, rdi
+  mov     rdx, rsi
+  mov     rax, 1
+  mov     rdi, 1
+  syscall
+  ret
+
+_start:
+    mov rdi, message
+    mov rsi,14  
+    call print_string
+    call exit                    ; это вызов функции exit
+#+END_SRC
+
+
+*Вопрос* С помощью тестировщика для [[https://gitlab.se.ifmo.ru/programming-languages/cse-programming-languages-fall-2021/assignment-1-io-library][первой лабораторной работы]] протестируйте работу функций =string_length= и =print_string=.
+
+
+
+* Соглашение вызова (10 минут)
+В /секции 2.4 из книги "Low-level programming" говорилось про /соглашение вызова/. Это набор правил вызова функций; соблюдение этих правил гарантирует возможность свободно переписывать функции и подменять их реализации.
+
+Если не соблюдать соглашение вызова, вызов функций станет ненадёжным: что-то сломается или сейчас, или в будущем, после подмены функции на новую реализацию.
+
+
+*Вопрос* Что такое /callee-saved/ и /caller-saved/ регистры? В чём разница между их использованием при вызове функций?
+
+*Вопрос* Почему не сделать все регистры /callee-saved/?
+
+
+*Вопрос* Будет ли работать этот код на ассемблере? Корректен ли он с точки зрения соглашений?
+
+#+BEGIN_SRC asm
+; rdi = адрес строки
+string_length:
+    xor rax, rax
+    .counter:
+        cmp byte [rdi+rax], 0
+        je .end
+        inc rax
+        jmp .counter
+    .end:
+        ret
+
+; rdi = адрес строки
+print_string:
+    call string_length
+    mov rdx, rax
+    mov rax, 1
+    mov rsi, rdi
+    mov rdi, 1
+    syscall           ; вызов write
+    ret
+#+END_SRC
+
+*Вопрос* Будет ли работать этот код на ассемблере? Корректен ли он с точки зрения соглашений?
+
+#+BEGIN_SRC asm
+; rdi = адрес строки
+string_length:
+    mov rax, rdi
+    .counter:
+        cmp byte [rdi], 0
+        je .end
+        inc rdi
+        jmp .counter
+    .end:
+    sub rdi, rax
+    mov rax, rdi
+    ret
+; rdi = адрес строки
+print_string:
+    call string_length
+    mov rdx, rax
+    mov rax, 1
+    mov rsi, rdi
+    mov rdi, 1
+    syscall           ; вызов write
+    ret
+#+END_SRC
+
+
+
+
+* Использование стека для локальных переменных (15 минут)
+
+Как вы поняли, при вызове функции инструкция =call= кладёт на вершину стека адрес возврата.
+Если после этого уменьшить указатель на вершину стека =rsp= так, чтобы между ним и адресом возврата можно было уместить нужные нам для работы временные данные, мы говорим, что мы /выделили память в стеке/.
+
+
+*Вопрос* Есть ли разница между следующими способами выделения памяти?
+
+#+BEGIN_SRC asm
+; Первый способ
+sub rsp, 24
+
+; Второй способ
+push 0
+push 0
+push 0
+#+END_SRC
+
+
+*Вопрос* Напишите функцию, которая выделит место под три локальные переменные, запишет туда =aa=, =bb= и =ff= и выведет их на экран. Затем она должна корректно завершиться. Протестируйте её.
+
+Для вывода на экран используйте уже написанную в начале семинара =print_hex=.
