@@ -1,125 +1,102 @@
 section .text
 
-; Принимает код возврата и завершает текущий процесс
-exit:
-    mov rax, 60
-    syscall
-
 ; Принимает указатель на нуль-терминированную строку, возвращает её длину
 string_length:
-    xor rax, rax            ; nullifying accumulator
+    xor rax, rax
   .iter:
-    cmp [rdi+rax], byte 0x0
-    je .end
-    inc rax                 ; incrementing <rax>
+    cmp byte[rdi+rax], 0x0
+    je .break
+    inc rax
     jmp .iter
-  .end:
+  .break:
     ret
 
 ; Принимает указатель на нуль-терминированную строку, выводит её в stdout
 print_string:
     call string_length
   .print:
-    mov rsi, rdi            ; setting string address
-    mov rdi, 0x1            ; setting <stdout> descriptor
-    mov rdx, rax            ; setting string length in bytes
-    mov rax, 0x1            ; setting <write> system call number
+    mov rsi, rdi
+    mov rdi, 0x1
+    mov rdx, rax
+    mov rax, 0x1
     syscall
-  .end:
-    ret
-
-; Принимает код символа и выводит его в stdout
-print_char:
-    push rdi                ; pushing character ASCII-code to the stack
-  .print:
-    mov rax, 0x1            ; setting <write> system call number
-    mov rdi, 0x1            ; setting <stdout> descriptor
-    mov rsi, rsp            ; setting character address at the stack
-    mov rdx, 0x1            ; setting number of bytes to write
-    syscall
-  .end:
-    add rsp, 0x8            ; restoring stack state
     ret
 
 ; Переводит строку (выводит символ с кодом 0xA)
 print_newline:
     mov rdi, 0xa
-    call print_char
-  .end:
+
+; Принимает код символа и выводит его в stdout
+print_char:
+    push rdi
+    mov rax, 0x1
+    mov rdi, 0x1
+    mov rsi, rsp
+    mov rdx, 0x1
+    syscall
+    pop rdi
     ret
+
+; Выводит знаковое 8-байтовое число в десятичном формате
+print_int:
+    test rdi, rdi
+    jns print_uint
+    neg rdi
+    push rdi
+    mov rdi, 0x2d
+    call print_char
+    pop rdi
 
 ; Выводит беззнаковое 8-байтовое число в десятичном формате
 ; Совет: выделите место в стеке и храните там результаты деления
 ; Не забудьте перевести цифры в их ASCII коды.
 print_uint:
-    mov rax, rdi            ; loading number to accumulator
-  .alloc:
-    mov rcx, rsp            ; creating pointer to the buffer
-    sub rsp, 0x16           ; allocating 22 bytes in the stack for keeping decimal number digits' ASCII-code
+    mov rax, rdi
+    mov rcx, rsp
+    sub rsp, 0x16
     dec rcx
-    mov [rcx], byte 0x0     ; setting code of null-terminator to the end of allocated buffer
+    mov [rcx], byte 0x0
     mov r10, 0xa
   .iter:
-    xor rdx, rdx            ; nullifying <rdx>
+    xor rdx, rdx
     div r10
     add rdx, 0x30
     dec rcx
     mov [rcx], dl
     test rax, rax
     jne .iter
-  .print:
-    mov rdi, rcx            ; setting the argument of function print_string
+    mov rdi, rcx
     call print_string
-  .end:
-    add rsp, 0x16           ; restoring stack state
-    ret
-
-; Выводит знаковое 8-байтовое число в десятичном формате
-print_int:
-    test rdi, rdi
-    jns .pos
-  .neg:
-    neg rdi                 ; inverting sign of the number
-    push rdi
-    mov rdi, 0x2d           ; storing dash ASCII-code
-    call print_char         ; printing minus char
-    pop rdi
-  .pos:
-    call print_uint
-  .end:
+    add rsp, 0x16
     ret
 
 ; Принимает два указателя на нуль-терминированные строки, возвращает 1 если они равны, 0 иначе
 string_equals:
-    xor rcx, rcx            ; nullifying buffer's pointer
+    xor rcx, rcx
     xor r8, r8
-    xor r9, r9
-    mov rax, 0x1            ; moving accumulator value equal to 1
-  .cmp:
-    mov r8b, [rdi+rcx]      ; loading next character of first string
-    mov r9b, [rsi+rcx]      ; loading next character of second string
-    cmp r8b, r9b
+    mov rax, 0x1
+  .iter:
+    mov r8b, [rdi+rcx]
+    cmp r8b, [rsi+rcx]
     jne .err
     cmp r8b, 0x0
     je .end
-    inc rcx                 ; incrementing pointer
-    jmp .cmp
+    inc rcx
+    jmp .iter
   .err:
-    xor rax, rax            ; nullifying accumulator
+    xor rax, rax
   .end:
     ret
 
 ; Читает один символ из stdin и возвращает его. Возвращает 0 если достигнут конец потока
 read_char:
     push 0x0
-  .read:
-    xor rax, rax            ; setting <read> system call number
-    xor rdi, rdi            ; setting <stdin> descriptor
-    mov rsi, rsp            ; setting address at the stack for keeping character
-    mov rdx, 0x1            ; setting number of bytes to read
+    xor rax, rax
+    xor rdi, rdi
+    mov rsi, rsp
+    mov rdx, 0x1
     syscall
-  .end:
-    pop rax                 ; storing read character to the accumulator
+    pop rax
     ret
 
 ; Принимает: адрес начала буфера, размер буфера
@@ -130,50 +107,39 @@ read_char:
 ; При неудаче возвращает 0 в rax
 ; Эта функция должна дописывать к слову нуль-терминатор
 read_word:
-    push rsi-0x1            ; pushing buffer address
-    push rdi                ; pushing buffer size
-  .skip:
-    call read_char
-    cmp rax, 0xa            ; skipping char with ASCII-code 0xA
-    je .skip
-    cmp rax, 0x9            ; skipping char with ASCII-code 0x9
-    je .skip
-    cmp rax, 0x20           ; skipping char with ASCII-code 0x20
-    je .skip
-  .init:
-    mov rdi, [rsp]          ; storing buffer address to <rdi>
-    mov rsi, [rsp+0x1]      ; storing buffer size to <rsi>
-    xor rdx, rdx            ; nullifying <rdx>
+    push rsi-0x1
+    push rdi
+    xor r8, r8
+    xor r9, r9
   .iter:
-    cmp rdx, rsi
-    je .err
-    test rax, rax
-    je .succ
-    mov [rdi+rdx], al       ; storing char on the buffer
-    inc rdx                 ; incrementing buffer pointer
-  .read:
-    push rdx
     call read_char
-    pop rdx
-  .store:
     mov rdi, [rsp]
     mov rsi, [rsp+0x1]
-  .check:
-    cmp rax, 0xa
-    je .succ
     cmp rax, 0x9
-    je .succ
+    je .check
+    cmp rax, 0xa
+    je .check
     cmp rax, 0x20
-    je .succ
+    je .check
+    mov r9, 0x1
+    cmp rax, 0x0
+    je .check
+    cmp r8, rsi
+    je .err
+    mov [rdi+r8], al
+    inc r8
     jmp .iter
-  .succ:
-    mov [rdi+rdx], byte 0x0 ; storing null terminator
-    mov rax, rdi            ; storing returning value in the accumulator
+  .check:
+    test r9, r9
+    je .iter
+    mov [rdi+r8], byte 0x0
+    mov rax, rdi
+    mov rdx, r8
     jmp .end
   .err:
-    xor rax, rax            ; nullifying accumulator
+    xor rax, rax
   .end:
-    pop rdi                 ; restoring stack state
+    pop rdi
     pop rsi
     ret
 
@@ -182,26 +148,23 @@ read_word:
 ; Возвращает в rax: число, rdx : его длину в символах
 ; rdx = 0 если число прочитать не удалось
 parse_uint:
-    xor rax, rax            ; nullifying accumulator
-    xor rdx, rdx
+    xor rax, rax
+    xor r8, r8
     xor r9, r9
-    mov r10, 0xa            ; setting <r10> value equal to 10
-  .parse:
-    mov r9b, [rdi+rdx]      ; reading next character from the buffer
-  .check:
+    mov r10, 0xa
+  .iter:
+    mov r9b, [rdi+r8]
     cmp r9b, 0x30
-    jb .end
+    jb .break
     cmp r9b, 0x39
-    ja .end
-  .digit:
-    push rdx
-    sub r9b, 0x30           ; converting character to integer
-    mul r10                 ; multiplying result to 10
-    add rax, r9             ; adding digit to the result
-    pop rdx
-    inc rdx                 ; incrementing buffer pointer
-    jmp .parse
-  .end:
+    ja .break
+    sub r9b, 0x30
+    mul r10
+    add rax, r9
+    inc r8
+    jmp .iter
+  .break:
+    mov rdx, r8
     ret
 
 ; Принимает указатель на строку, пытается
@@ -210,36 +173,34 @@ parse_uint:
 ; Возвращает в rax: число, rdx : его длину в символах (включая знак, если он был)
 ; rdx = 0 если число прочитать не удалось
 parse_int:
-    cmp [rdi], byte 0x2d    ; checking for sign
-    je .neg
-  .pos:
-    call parse_uint         ; parsing positive integer
-    jmp .end
-  .neg:
-    inc rdi                 ; skipping dash sign
-    call parse_uint         ; parsing negative integer
-    neg rax                 ; negating accumulator
-    inc rdx                 ; incrementing number length
-  .end:
+    cmp byte[rdi], 0x2d
+    jne parse_uint
+    inc rdi
+    call parse_uint
+    neg rax
+    inc rdx
     ret
 
 ; Принимает указатель на строку, указатель на буфер и длину буфера
 ; Копирует строку в буфер
 ; Возвращает длину строки если она умещается в буфер, иначе 0
 string_copy:
-    call string_length
-  .copy:
-    xor rcx, rcx            ; nullifying <rcx>
+    xor rax, rax
   .iter:
-    cmp rcx, rdx
+    cmp rax, rdx
     je .err
-    mov r8b, [rdi+rcx]      ; reading a character from the string
-    mov [rsi+rcx], r8b      ; writing the next character to the buffer
-    cmp rcx, rax
-    je .end
-    inc rcx                 ; incrementing <rcx>
+    mov r8b, [rdi+rax]
+    mov [rsi+rax], r8b
+    test r8b, r8b
+    je .break
+    inc rax
     jmp .iter
   .err:
-    xor rax, rax            ; nullifying accumulator
-  .end:
+    xor rax, rax
+  .break:
     ret
+
+; Принимает код возврата и завершает текущий процесс
+exit:
+    mov rax, 0x3c
+    syscall
