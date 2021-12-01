@@ -1,3 +1,17 @@
+global string_length
+global print_string
+global print_newline
+global print_char
+global print_int
+global print_uint
+global read_char
+global read_word
+global parse_uint
+global parse_int
+global string_equals
+global string_copy
+global exit
+
 section .text
 
 ; Принимает указатель на нуль-терминированную строку, возвращает её длину
@@ -68,24 +82,6 @@ print_uint:
     mov rdi, rcx
     call print_string
     add rsp, 0x16
-    ret
-
-; Принимает два указателя на нуль-терминированные строки, возвращает 1 если они равны, 0 иначе
-string_equals:
-    xor rcx, rcx
-    xor r8, r8
-    mov rax, 0x1
-  .iter:
-    mov r8b, [rdi+rcx]
-    cmp r8b, [rsi+rcx]
-    jne .err
-    cmp r8b, 0x0
-    je .end
-    inc rcx
-    jmp .iter
-  .err:
-    xor rax, rax
-  .end:
     ret
 
 ; Читает один символ из stdin и возвращает его. Возвращает 0 если достигнут конец потока
@@ -177,6 +173,24 @@ parse_int:
     call parse_uint
     neg rax
     inc rdx
+    ret
+
+; Принимает два указателя на нуль-терминированные строки, возвращает 1 если они равны, 0 иначе
+string_equals:
+    xor rcx, rcx
+    xor r8, r8
+    mov rax, 0x1
+  .iter:
+    mov r8b, [rdi+rcx]
+    cmp r8b, [rsi+rcx]
+    jne .err
+    cmp r8b, 0x0
+    je .end
+    inc rcx
+    jmp .iter
+  .err:
+    xor rax, rax
+  .end:
     ret
 
 ; Принимает указатель на строку, указатель на буфер и длину буфера
