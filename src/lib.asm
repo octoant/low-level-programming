@@ -6,10 +6,14 @@ global print_int
 global print_uint
 global read_char
 global read_word
+global read_line
 global parse_uint
 global parse_int
 global string_equals
 global string_copy
+global trim_head
+global trim_string
+global trim_tail
 global exit
 
 section .text
@@ -140,6 +144,35 @@ read_word:
     pop rsi                 ; которое было в начале подпрограммы
     ret
 
+; Принимает: адрес начала буфера, размер буфера
+; Читает в буфер одна линия из стандартного потока ввода (stdin)
+; Останавливается и возвращает -1 если слово слишком большое для буфера
+; При успехе возвращает длину слова в rax
+; Эта функция должна дописывать к слову нуль-терминатор
+read_line:
+    xor r8, r8
+  .iter:
+    cmp rsi, r8
+    je .err
+    push rdi
+    push rsi
+    call read_char
+    pop rsi
+    pop rdi
+    cmp rax, 0x0
+    je .break
+    cmp rax, 0xa
+    je .break
+    mov [rdi+r8], al
+    inc r8
+    jmp .iter
+  .err:
+    mov r8, -0x1
+  .break:
+    mov [rdi+r8], byte 0x0
+    mov rax, r8
+    ret
+
 ; Принимает указатель на строку, пытается прочитать из её начала беззнаковое число.
 ; Возвращает в rax: число, rdx : его длину в символах rdx = 0 если число прочитать не удалось
 parse_uint:
@@ -210,6 +243,44 @@ string_copy:
   .err:
     xor rax, rax
   .break:
+    ret
+
+; Принимает указатель на нуль-терминированную строку
+; Удаляет начальные пробелы
+trim_head:
+    xor rax, rax
+    mov rsi, rdi
+    dec rsi
+  .skip:
+    inc rsi
+    cmp byte[rsi], 0x20
+    je .skip
+    cmp rsi, rdi
+    je .end
+  .iter:
+    mov r8b, [rsi+rax]
+    mov [rdi+rax], r8b
+    test r8b, r8b
+    je .end
+    inc rax
+    jmp .iter
+  .end:
+    ret
+
+; Принимает указатель на нуль-терминированную строку
+; Удаляет начальные и конечные пробелы
+trim_string:
+    call trim_head
+
+; Принимает указатель на нуль-терминированную строку
+; Удаляет конечные пробелы
+trim_tail:
+    call string_length
+  .iter:
+    mov byte[rdi+rax], 0x0
+    dec rax
+    cmp byte[rdi+rax], 0x20
+    je .iter
     ret
 
 ; Принимает код возврата и завершает текущий процесс
