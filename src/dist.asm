@@ -32,10 +32,10 @@ find_word:
 ; Принимает адрес начала вхождения в словарь
 ; Вернет адрес начало слова (значение)
 get_value:
-  add rdi, 0x8
-  push rdi
-  call string_length
-  pop rdi
-  add rax, rdi
-  inc rax
-  ret
+    add rdi, 0x8
+    push rdi
+    call string_length
+    pop rdi
+    add rax, rdi
+    inc rax
+    ret
