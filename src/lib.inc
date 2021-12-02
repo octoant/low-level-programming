@@ -1,5 +1,6 @@
 extern string_length
 extern print_string
+extern print_string2
 extern print_newline
 extern print_char
 extern print_int

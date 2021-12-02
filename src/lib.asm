@@ -1,5 +1,6 @@
 global string_length
 global print_string
+global print_string2
 global print_newline
 global print_char
 global print_int
@@ -35,6 +36,17 @@ print_string:
   .print:
     mov rsi, rdi
     mov rdi, 0x1
+    mov rdx, rax
+    mov rax, 0x1
+    syscall
+    ret
+
+; Принимает указатель на нуль-терминированную строку, выводит её в stderr
+print_string2:
+    call string_length
+  .print:
+    mov rsi, rdi
+    mov rdi, 0x2
     mov rdx, rax
     mov rax, 0x1
     syscall
