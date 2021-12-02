@@ -1,3 +1,5 @@
+%include "colon.inc"
+
 section .data
 
 colon "third word", third_word
