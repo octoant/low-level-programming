@@ -7,7 +7,7 @@ all: dictionary
 dictionary: main.o dict.o lib.o
 	$(LD) -o $@ $^
 
-main.o: main.asm dict.o lib.o lib.inc colon.inc words.inc
+main.o: main.asm dict.o lib.o *.inc
 	$(ASM) $(ASMFLAGS) -o $@ $<
 
 dict.o: dist.asm lib.o lib.inc
