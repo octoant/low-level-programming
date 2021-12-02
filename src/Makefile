@@ -7,10 +7,10 @@ all: dictionary
 dictionary: main.o dict.o lib.o
 	$(LD) -o $@ $^
 
-main.o: main.asm
+main.o: main.asm dict.o lib.o lib.inc colon.inc words.inc
 	$(ASM) $(ASMFLAGS) -o $@ $<
 
-dict.o: dist.asm
+dict.o: dist.asm lib.o lib.inc
 	$(ASM) $(ASMFLAGS) -o $@ $<
 
 lib.o: lib.asm
