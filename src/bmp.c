@@ -39,8 +39,8 @@ static struct header generate_header(const struct dimensions dims) {
   const uint32_t file_size = head_size + img_size;
   return (struct header) {
       .bfType = SIGNATURE,
-      .bfileSize= file_size,
-      .bfReserved= 0,
+      .bfileSize = file_size,
+      .bfReserved = 0,
       .bOffBits = head_size,
       .biSize = HEADER_INFO_SIZE,
       .biWidth = dims.width,
@@ -98,9 +98,11 @@ enum read_status from_bmp(FILE *in, struct image *img) {
 
 enum write_status to_bmp(FILE *out, struct image const *img) {
   enum write_status retval = WRITE_OK;
+  /* write the header of bitmap file */
   const struct header head = generate_header(img->dims);
   if (fwrite(&head, sizeof(struct header), 1, out) < 1)
     return WRITE_ERROR;
+  /* write data section */
   const struct dimensions dims = img->dims;
   for (uint32_t o = 0, i = 0; i < dims.height; i++) {
     if (fwrite(&img->data[i * dims.width], sizeof(struct pixel), dims.width, out)
