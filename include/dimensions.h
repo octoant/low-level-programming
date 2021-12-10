@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 
-struct dimensions { uint32_t width, height; };
+struct dimensions {
+  uint32_t width, height;
+};
+
+struct dimensions dimensions_create(uint32_t, uint32_t);
+struct dimensions dimensions_reverse(const struct dimensions *dims);
 
 #endif
