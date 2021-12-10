@@ -49,13 +49,22 @@ static enum read_status read_image(FILE *in, struct image *img) {
 
 enum read_status from_bmp(FILE *in, struct image *img) {
   enum read_status retval = READ_OK;
+
   struct header head = {0};
   if ((retval = read_header(in, &head)) != 0)
     return retval;
 
+  if (fseek(in, head.bOffBits, SEEK_SET) != 0)
+    return READ_INVALID_BITS;
 
+  *img = image_create(dimensions_create(head.biWidth, head.biHeight));
+  if ((retval = read_image(in, img)) != 0)
+    image_destroy(img);
 
   return retval;
 }
 
-enum write_status to_bmp(FILE *out, struct image const *img) { return -1; }
+enum write_status to_bmp(FILE *out, struct image const *img) {
+  enum write_status retval = WRITE_OK;
+  return retval;
+}
