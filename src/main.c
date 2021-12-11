@@ -1,9 +1,9 @@
-#include <stdio.h>
 #include "bmp.h"
 #include "file.h"
 #include "image.h"
 #include "transform.h"
 #include "util.h"
+#include <stdio.h>
 
 #define EXECUTABLE "image-transformer"
 
