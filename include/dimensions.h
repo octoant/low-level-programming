@@ -8,6 +8,6 @@ struct dimensions {
 };
 
 struct dimensions dimensions_create(uint32_t, uint32_t);
-struct dimensions dimensions_reverse(const struct dimensions *dims);
+struct dimensions dimensions_reverse(struct dimensions dims);
 
 #endif
