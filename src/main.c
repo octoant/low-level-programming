@@ -49,8 +49,14 @@ int main(int argc, char *argv[]) {
   enum write_status wstat = to_bmp(out, &transformed);
   file_close(&out);
   if (wstat != WRITE_OK) {
+    image_destroy(&source);
+    image_destroy(&transformed);
     fprintf(stderr, "%s\n", w_msg[wstat]);
     return wstat;
   }
+
+  image_destroy(&source);
+  image_destroy(&transformed);
+
   return 0;
 }
