@@ -17,8 +17,9 @@ void debug_struct_info(FILE *file, void const *addr) {
 }
 
 void debug_heap(FILE *file, void const *ptr) {
-  fprintf(file, " --- Heap --- \n");
-  fprintf(file, "%10s %10s %8s 10%s\n",
+  fprintf(file,
+          "------------------ HEAP ------------------\n");
+  fprintf(file, "%10s %10s %8s %10s\n",
           "start", "capacity", "status", "contents");
   for (struct block_header const *header = ptr; header;
        header = header->next) {
