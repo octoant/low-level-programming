@@ -18,13 +18,15 @@ stands for transposition). *B*, *G*, *R* stand for blue, green, and red levels.
 In vector from the transformation can be described as follows:
 
 <p align="center">
-  <img src="docs/transform-matrix.png" alt="transform-pixel" />
+  <img src="docs/transform-matrix.png" alt="transform-pixel" 
+       width="250" height="70" />
 </p>
 
 In scalar form, we can rewrite it as
 
 <p align="center">
-  <img src="docs/transform-system.png" alt="transform-system" />
+  <img src="docs/transform-system.png" alt="transform-system"
+       width="250" height="70" />
 </p>
 
 We will have to use saturation arithmetic. It means, that all operations such as
