@@ -22,9 +22,9 @@ global sepia_four_pixels
 %endmacro
 
 section .rodata
-red:   dd 0.393, 0.349, 0.272, 0.000
-green: dd 0.769, 0.686, 0.543, 0.000
-blue:  dd 0.189, 0.168, 0.131, 0.000
+red:   dd 0.131, 0.168, 0.189
+green: dd 0.543, 0.686, 0.769
+blue:  dd 0.272, 0.349, 0.393
 align 16
 max:   dd 255.0, 255.0, 255.0, 255.0
 

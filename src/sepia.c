@@ -43,9 +43,9 @@ static unsigned char saturate(uint64_t x) {
 
 static struct pixel sepia_one_pixel(struct pixel pxl) {
   static const float c[3][3] = {
-      {.393f, .769f, .189f},
-      {.349f, .686f, .168f},
-      {.272f, .543f, .131f}
+    {.131f, .543f, .272f},
+    {.168f, .686f, .349f},
+    {.189f, .769f, .393f}
   };
   return (struct pixel) {
       saturate((uint64_t)(
